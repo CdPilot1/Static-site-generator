@@ -1,6 +1,6 @@
 import unittest
 from textnode import TextNode, TextType
-from markdown_to_text import split_nodes_delimiter
+from markdown_to_text import split_nodes_delimiter, extract_markdown_images, extract_markdown_links
 
 
 class TestSplitNodesDelimiter(unittest.TestCase):
@@ -101,6 +101,74 @@ class TestSplitNodesDelimiter(unittest.TestCase):
     def test_empty_list(self):
         self.assertEqual(split_nodes_delimiter([], "`", TextType.CODE), [])
 
+class TestExtractMarkdownImages(unittest.TestCase):
+    def test_extract_markdown_images(self):
+        matches = extract_markdown_images(
+            "This is text with an ![image](https://i.imgur.com/zjjcJKZ.png)"
+        )
+        self.assertListEqual([("image", "https://i.imgur.com/zjjcJKZ.png")], matches)
+
+    def test_extract_multiple_images(self):
+        matches = extract_markdown_images(
+            "![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        )
+        self.assertListEqual([
+            ("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+            ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg"),
+        ], matches)
+
+    def test_extract_images_no_images(self):
+        matches = extract_markdown_images("This is just plain text with no images")
+        self.assertListEqual([], matches)
+
+    def test_extract_images_ignores_links(self):
+        matches = extract_markdown_images(
+            "This is a [link](https://www.google.com) not an image"
+        )
+        self.assertListEqual([], matches)
+
+    def test_extract_images_empty_alt_text(self):
+        matches = extract_markdown_images("![](https://i.imgur.com/zjjcJKZ.png)")
+        self.assertListEqual([("", "https://i.imgur.com/zjjcJKZ.png")], matches)
+
+    def test_extract_images_empty_string(self):
+        matches = extract_markdown_images("")
+        self.assertListEqual([], matches)
+
+
+class TestExtractMarkdownLinks(unittest.TestCase):
+    def test_extract_single_link(self):
+        matches = extract_markdown_links(
+            "This is text with a [link](https://www.google.com)"
+        )
+        self.assertListEqual([("link", "https://www.google.com")], matches)
+
+    def test_extract_multiple_links(self):
+        matches = extract_markdown_links(
+            "This is text with a [link](https://www.google.com) and [another](https://www.boot.dev)"
+        )
+        self.assertListEqual([
+            ("link", "https://www.google.com"),
+            ("another", "https://www.boot.dev"),
+        ], matches)
+
+    def test_extract_links_no_links(self):
+        matches = extract_markdown_links("This is just plain text with no links")
+        self.assertListEqual([], matches)
+
+    def test_extract_links_ignores_images(self):
+        matches = extract_markdown_links(
+            "This is an ![image](https://i.imgur.com/zjjcJKZ.png) not a link"
+        )
+        self.assertListEqual([], matches)
+
+    def test_extract_links_empty_anchor_text(self):
+        matches = extract_markdown_links("[](https://www.google.com)")
+        self.assertListEqual([("", "https://www.google.com")], matches)
+
+    def test_extract_links_empty_string(self):
+        matches = extract_markdown_links("")
+        self.assertListEqual([], matches)
 
 if __name__ == "__main__":
     unittest.main()
